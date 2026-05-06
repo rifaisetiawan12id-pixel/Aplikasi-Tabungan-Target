@@ -5,6 +5,7 @@ import pandas as pd
 st.set_page_config(page_title="Tabungan UTS", layout="centered")
 st.title("💰 Tabungan Target (Google Drive)")
 
+# Link Google Sheets kamu
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1AiKDFHzCU9VnKwZnoaF-0cnUCBOuyYpOAc-C4vOfw2I/edit?usp=sharing"
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -25,5 +26,5 @@ with st.sidebar:
             st.success("Berhasil Masuk Google Drive!")
             st.rerun()
 
-st.subheader("Progres Tabungan Anda")
+st.subheader("Daftar Progres")
 st.dataframe(df, use_container_width=True)
