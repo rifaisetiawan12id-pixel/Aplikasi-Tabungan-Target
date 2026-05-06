@@ -1,51 +1,59 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
+import os
 
-# Judul Aplikasi
+# Nama file penyimpan data
+FILE_DATA = "data_tabungan.csv"
+
 st.set_page_config(page_title="Tabungan UTS", layout="centered")
-st.title("💰 Tabungan Target (API Cloud)")
+st.title("💰 Tabungan Target (Local Data)")
 
-# URL Spreadsheet Database kamu
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1AiKDFHzCU9VnKwZnoaF-0cnUCBOuyYpOAc-C4vOfw2I/edit?usp=sharing"
-
-# Koneksi API ke Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
-
-# --- READ ---
+# Fungsi Load Data
 def load_data():
-    try:
-        return conn.read(spreadsheet=URL_SHEET)
-    except:
+    if os.path.exists(FILE_DATA):
+        return pd.read_csv(FILE_DATA)
+    else:
         return pd.DataFrame(columns=["nama_barang", "harga_target", "nominal_terkumpul", "deadline"])
+
+# Fungsi Simpan Data
+def save_data(dataframe):
+    dataframe.to_csv(FILE_DATA, index=False)
 
 df = load_data()
 
-# --- CREATE ---
+# --- INPUT DATA (SIDEBAR) ---
 with st.sidebar:
     st.header("Tambah Data")
-    with st.form("add_form"):
+    with st.form("form_input"):
         nama = st.text_input("Nama Barang")
         harga = st.number_input("Harga Target (Rp)", min_value=0)
         dana = st.number_input("Terkumpul (Rp)", min_value=0)
         tgl = st.date_input("Deadline")
-        submit = st.form_submit_button("Simpan ke Cloud")
-        
+        submit = st.form_submit_button("Simpan Data")
+
         if submit and nama:
-            new_row = pd.DataFrame([{"nama_barang": nama, "harga_target": harga, "nominal_terkumpul": dana, "deadline": str(tgl)}])
-            updated_df = pd.concat([df, new_row], ignore_index=True)
-            conn.update(spreadsheet=URL_SHEET, data=updated_df)
-            st.success("Tersimpan!")
+            new_row = pd.DataFrame([{
+                "nama_barang": nama, 
+                "harga_target": harga, 
+                "nominal_terkumpul": dana, 
+                "deadline": str(tgl)
+            }])
+            df = pd.concat([df, new_row], ignore_index=True)
+            save_data(df)
+            st.success("Berhasil Disimpan!")
             st.rerun()
 
-# --- TAMPILAN ---
+# --- TAMPILAN PROGRES ---
 st.subheader("Daftar Progres")
 if not df.empty:
     for index, row in df.iterrows():
         target = float(row["harga_target"])
-        dana = float(row["nominal_terkumpul"])
-        persen = (dana / target) if target > 0 else 0
+        terkumpul = float(row["nominal_terkumpul"])
+        persen = (terkumpul / target) if target > 0 else 0
+        
         st.write(f"**{row['nama_barang']}**")
         st.progress(min(persen, 1.0))
-        st.caption(f"{persen*100:.1f}% | Sisa: Rp {max(target - dana, 0):,.0f}")
+        st.caption(f"Tercapai: {persen*100:.1f}% | Sisa: Rp {max(target - terkumpul, 0):,.0f}")
         st.divider()
+else:
+    st.info("Belum ada data. Silakan isi di menu samping.")
